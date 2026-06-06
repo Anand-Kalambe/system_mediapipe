@@ -52,6 +52,11 @@ SKELETON_FULL = [
     (27, 31), (28, 32)   # foot outline
 ]
 
+# HEALTH CHECK
+@app.get("/")
+def health_check():
+    return {"status": "ok", "message": "System AI Active"}
+
 # PUSHUPS
 
 @app.websocket("/ws/pushups")
