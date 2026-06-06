@@ -1,11 +1,12 @@
 # Use a lightweight official Python image
 FROM python:3.10-slim
 
-# Install system dependencies required for MediaPipe (including libGLESv2) and OpenCV
+# Install system dependencies required for MediaPipe (including libGLESv2, libEGL) and OpenCV
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
     libgles2 \
+    libegl1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
