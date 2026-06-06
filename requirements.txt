@@ -1,6 +1,6 @@
-fastapi==0.110.0
-uvicorn==0.28.0
-opencv-python==4.9.0.80
-mediapipe==0.10.11
-numpy==1.26.4
-requests==2.31.0
+fastapi>=0.110.0
+uvicorn>=0.28.0
+opencv-python>=4.9.0.0
+mediapipe>=0.10.30
+numpy>=1.26.0,<2.0.0
+requests>=2.31.0
