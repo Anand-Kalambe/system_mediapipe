@@ -159,33 +159,27 @@ async def pushup_tracker(websocket: WebSocket):
                     stage = "down"
                     reps += 1
 
-                # --- DRAWING PUSHUP SKELETON ---
-                arm_color = (0, 255, 255) if arm_angle < 100 else (255, 255, 255)
-                back_color = (0, 255, 0) if is_valid_form else (0, 0, 255)
-
-                for s, e in SKELETON_FULL:
-                    if (s in [11, 13, 12, 14] and e in [13, 15, 14, 16]):
-                        color = arm_color
-                    elif (s in [11, 12, 23, 24, 25, 26] and e in [23, 24, 25, 26, 27, 28]):
-                        color = back_color
-                    else:
-                        color = (255, 255, 255)
-                    cv2.line(frame, (int(lm[s].x*w), int(lm[s].y*h)), (int(lm[e].x*w), int(lm[e].y*h)), color, 3)
-                
-                for i in range(11, 33):
-                    cv2.circle(frame, (int(lm[i].x*w), int(lm[i].y*h)), 5, (255, 0, 255), -1)
-                
                 # Visual warnings on HUD for poor posture
+                warning = None
                 if not is_valid_form:
                     if (is_side_view and back_hip_angle <= 140) or (not is_side_view and (l_back_hip <= 140 or r_back_hip <= 140)):
-                        cv2.putText(frame, "FIX BACK ALIGNMENT!", (30, h - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                        warning = "FIX BACK ALIGNMENT!"
                     elif (is_side_view and knee_angle <= 145) or (not is_side_view and (l_knee <= 145 or r_knee <= 145)):
-                        cv2.putText(frame, "STRAIGHTEN LEGS!", (30, h - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                        warning = "STRAIGHTEN LEGS!"
 
-            # ENCODE AND SEND BACK TO REACT
-            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
-            frame_b64 = base64.b64encode(buffer).decode('utf-8')
-            await websocket.send_json({"reps": reps, "frame": frame_b64})
+                lm_data = [{"x": lm[i].x, "y": lm[i].y} for i in range(33)]
+                arm_color_hex = "#ffff00" if arm_angle < 100 else "#ffffff"
+                back_color_hex = "#00ff00" if is_valid_form else "#ff0000"
+
+                await websocket.send_json({
+                    "reps": reps, 
+                    "landmarks": lm_data, 
+                    "arm_color": arm_color_hex, 
+                    "back_color": back_color_hex,
+                    "warning": warning
+                })
+            else:
+                await websocket.send_json({"reps": reps, "landmarks": []})
 
     except WebSocketDisconnect:
         print("[SYSTEM]: Hunter disconnected.")
@@ -272,35 +266,33 @@ async def squat_tracker(websocket: WebSocket):
                         stage = "down"
                         reps += 1
 
-                # --- DRAWING SQUAT SKELETON ---
-                l_color = (0, 255, 255) if l_angle < 105 else (255, 255, 255)
-                r_color = (0, 255, 255) if r_angle < 105 else (255, 255, 255)
-                back_color = (0, 255, 0) if is_valid_form else (0, 0, 255)
-
-                for s, e in SKELETON_FULL:
-                    color = (255, 255, 255)
-                    if s in [23, 25] and e in [25, 27]:
-                        color = l_color if is_valid_form else (0, 0, 255)
-                    elif s in [24, 26] and e in [26, 28]:
-                        color = r_color if is_valid_form else (0, 0, 255)
-                    elif s in [11, 12, 23] and e in [23, 24, 24]:
-                        color = back_color
-                    cv2.line(frame, (int(lm[s].x*w), int(lm[s].y*h)), (int(lm[e].x*w), int(lm[e].y*h)), color, 3)
-
-                for i in range(11, 33):
-                    cv2.circle(frame, (int(lm[i].x*w), int(lm[i].y*h)), 5, (255, 0, 255), -1)
-
-                # Visual warning on HUD for poor posture
+                warning = None
                 if not is_valid_form:
                     if not is_symmetric and not is_side_view:
-                        cv2.putText(frame, "IMBALANCED FORM!", (30, h - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                        warning = "IMBALANCED FORM!"
                     elif back_hip_angle <= 65:
-                        cv2.putText(frame, "KEEP CHEST UP / FIX BACK!", (30, h - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                        warning = "KEEP CHEST UP / FIX BACK!"
 
-            # ENCODE AND SEND BACK TO REACT
-            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
-            frame_b64 = base64.b64encode(buffer).decode('utf-8')
-            await websocket.send_json({"reps": reps, "frame": frame_b64})
+                lm_data = [{"x": lm[i].x, "y": lm[i].y} for i in range(33)]
+                
+                l_color_hex = "#ffff00" if l_angle < 105 else "#ffffff"
+                r_color_hex = "#ffff00" if r_angle < 105 else "#ffffff"
+                if not is_valid_form:
+                    l_color_hex = "#ff0000"
+                    r_color_hex = "#ff0000"
+                
+                back_color_hex = "#00ff00" if is_valid_form else "#ff0000"
+
+                await websocket.send_json({
+                    "reps": reps, 
+                    "landmarks": lm_data, 
+                    "l_color": l_color_hex,
+                    "r_color": r_color_hex,
+                    "back_color": back_color_hex,
+                    "warning": warning
+                })
+            else:
+                await websocket.send_json({"reps": reps, "landmarks": []})
 
     except WebSocketDisconnect:
         print("[SYSTEM]: Hunter disconnected.")
